@@ -1,0 +1,6 @@
+{
+  "name": "Faculty Timer",
+  "description": "A clever scheduling and alert timer app for faculty members, with deep-tone alerts and notifications 20 minutes (for 15s) and 10 minutes (for 30s) before classes start.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
