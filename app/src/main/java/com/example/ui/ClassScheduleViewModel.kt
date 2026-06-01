@@ -49,7 +49,8 @@ class ClassScheduleViewModel(application: Application) : AndroidViewModel(applic
         recurSunday: Boolean,
         alertSound: String = "Default Deep Pulse",
         custom20MinEnabled: Boolean = true,
-        custom10MinEnabled: Boolean = true
+        custom10MinEnabled: Boolean = true,
+        customSoundDuration: Int = 30
     ) {
         viewModelScope.launch {
             val newSchedule = ClassSchedule(
@@ -67,7 +68,8 @@ class ClassScheduleViewModel(application: Application) : AndroidViewModel(applic
                 isEnabled = true,
                 alertSound = alertSound,
                 custom20MinEnabled = custom20MinEnabled,
-                custom10MinEnabled = custom10MinEnabled
+                custom10MinEnabled = custom10MinEnabled,
+                customSoundDuration = customSoundDuration
             )
             val generatedId = repository.insert(newSchedule).toInt()
             val finalSchedule = newSchedule.copy(id = generatedId)

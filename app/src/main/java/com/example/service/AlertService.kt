@@ -109,6 +109,16 @@ class AlertService : Service() {
         }
         val pSnooze10 = PendingIntent.getBroadcast(this, 102, snooze10Intent, flags)
 
+        val dismissIntent = Intent(this, SnoozeReceiver::class.java).apply {
+            putExtra("class_name", className)
+            putExtra("class_number", classNumber)
+            putExtra("minutes_before", minutesBefore)
+            putExtra("duration_seconds", durationSeconds)
+            putExtra("snooze_minutes", 0) // 0 means dismiss
+            putExtra("alert_sound", alertSound)
+        }
+        val pDismiss = PendingIntent.getBroadcast(this, 103, dismissIntent, flags)
+
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(heading)
             .setContentText(details)
@@ -117,11 +127,14 @@ class AlertService : Service() {
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setOngoing(true)
             .setAutoCancel(false)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Dismiss", pDismiss)
             .addAction(android.R.drawable.ic_lock_idle_alarm, "Snooze 5 Min", pSnooze5)
             .addAction(android.R.drawable.ic_lock_idle_alarm, "Snooze 10 Min", pSnooze10)
             .build()
 
-        if (Build.VERSION.SDK_INT >= 29) { 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { 
+            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE)
+        } else if (Build.VERSION.SDK_INT >= 29) {
             startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
         } else {
             startForeground(NOTIFICATION_ID, notification)
@@ -135,7 +148,9 @@ class AlertService : Service() {
                 stopAudioTrack()
 
                 val sampleRate = 8000
-                val totalSamples = durationSeconds * sampleRate
+                // 21 seconds gives a clean looping period for 0.7s, 1.0s, 0.3s, and 1.5s cycle arrays.
+                val loopDurationSeconds = 21
+                val totalSamples = loopDurationSeconds * sampleRate
                 val bufferData = ShortArray(totalSamples)
 
                 for (i in 0 until totalSamples) {
@@ -171,6 +186,13 @@ class AlertService : Service() {
                             volume = if (isSounding) 1.0 else 0.0
                             angle = 2.0 * Math.PI * 1000.0 * timeSec
                         }
+                        "Huge Beep" -> {
+                            // Extremely loud, persistent beep: 1.0s on, 0.5s off; 800Hz
+                            val cycle = timeSec % 1.5
+                            val isSounding = cycle < 1.0
+                            volume = if (isSounding) 1.0 else 0.0
+                            angle = 2.0 * Math.PI * 800.0 * timeSec
+                        }
                         else -> { // Default Deep Pulse (140Hz)
                             val isSounding = (timeSec % 1.0) < 0.6
                             volume = if (isSounding) 1.0 else 0.0
@@ -184,8 +206,8 @@ class AlertService : Service() {
                 audioTrack = AudioTrack.Builder()
                     .setAudioAttributes(
                         android.media.AudioAttributes.Builder()
-                            .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
-                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
+                            .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
                             .build()
                     )
                     .setAudioFormat(
@@ -199,10 +221,11 @@ class AlertService : Service() {
                     .setTransferMode(AudioTrack.MODE_STATIC)
                     .build().apply {
                         write(bufferData, 0, bufferData.size)
+                        setLoopPoints(0, bufferData.size, -1) // Loop infinitely
                         play()
                     }
 
-                // Sleep/delay for the specified beep duration before automatic termination
+                // Play for the configured duration in seconds
                 delay((durationSeconds * 1000L) + 500L)
             } catch (e: Exception) {
                 Log.e(TAG, "AudioTrack playing error: ${e.message}")

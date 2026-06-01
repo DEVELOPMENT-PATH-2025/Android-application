@@ -20,6 +20,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,8 +42,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -100,13 +104,15 @@ fun MainScreen(viewModel: ClassScheduleViewModel) {
     var alertSoundInput by remember { mutableStateOf("Default Deep Pulse") }
     var c20MinInput by remember { mutableStateOf(true) }
     var c10MinInput by remember { mutableStateOf(true) }
+    var customDurInputCreation by remember { mutableStateOf("30") }
 
     // Sound Options
     val soundOptions = listOf(
         "Default Deep Pulse",
         "Beryl Radar Pulse",
         "Chime Echo",
-        "Digital Warning Buzz"
+        "Digital Warning Buzz",
+        "Huge Beep"
     )
 
     // Request permissions launcher
@@ -225,6 +231,7 @@ fun MainScreen(viewModel: ClassScheduleViewModel) {
                             saturdayRecur = false
                             sundayRecur = false
                             alertSoundInput = "Default Deep Pulse"
+                            customDurInputCreation = "30"
                             c20MinInput = true
                             c10MinInput = true
                             showAddDialog = true
@@ -258,6 +265,10 @@ fun MainScreen(viewModel: ClassScheduleViewModel) {
                         // ACTIVE CLASS TRACKING CARD
                         item {
                             if (activeTrackingClass != null) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                CountdownTimerRing(schedule = activeTrackingClass)
+                                Spacer(modifier = Modifier.height(16.dp))
+                                
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -845,10 +856,14 @@ fun MainScreen(viewModel: ClassScheduleViewModel) {
 
     // FORM DIALOG FOR CREATING A NEW CLASS SCHEDULE
     if (showAddDialog) {
-        Dialog(onDismissRequest = { showAddDialog = false }) {
+        Dialog(
+            onDismissRequest = { showAddDialog = false },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
                     .wrapContentHeight()
                     .padding(8.dp),
                 shape = RoundedCornerShape(28.dp),
@@ -856,7 +871,9 @@ fun MainScreen(viewModel: ClassScheduleViewModel) {
                 tonalElevation = 6.dp
             ) {
                 Column(
-                    modifier = Modifier.padding(20.dp),
+                    modifier = Modifier
+                        .padding(20.dp)
+                        .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -1044,10 +1061,21 @@ fun MainScreen(viewModel: ClassScheduleViewModel) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Include -10 Min Urgent Alert (30s Deep Sound)", style = MaterialTheme.typography.bodySmall)
+                        Text("Include -10 Min Urgent Alert (Configurable duration)", style = MaterialTheme.typography.bodySmall)
                         Checkbox(
                             checked = c10MinInput,
                             onCheckedChange = { c10MinInput = it }
+                        )
+                    }
+
+                    if (c10MinInput) {
+                        OutlinedTextField(
+                            value = customDurInputCreation,
+                            onValueChange = { customDurInputCreation = it.take(4) },
+                            label = { Text("Duration of Huge Beep Sound (seconds)") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
 
@@ -1087,7 +1115,8 @@ fun MainScreen(viewModel: ClassScheduleViewModel) {
                                     recurSunday = sundayRecur,
                                     alertSound = alertSoundInput,
                                     custom20MinEnabled = c20MinInput,
-                                    custom10MinEnabled = c10MinInput
+                                    custom10MinEnabled = c10MinInput,
+                                    customSoundDuration = customDurInputCreation.toIntOrNull() ?: 30
                                 )
                                 Toast.makeText(context, "Class Scheduled successfully!", Toast.LENGTH_SHORT).show()
                                 showAddDialog = false
@@ -1133,6 +1162,7 @@ fun ClassDetailsScreen(
     var chosenSound by remember { mutableStateOf(schedule.alertSound) }
     var c20Enabled by remember { mutableStateOf(schedule.custom20MinEnabled) }
     var c10Enabled by remember { mutableStateOf(schedule.custom10MinEnabled) }
+    var customDurInput by remember { mutableStateOf(schedule.customSoundDuration.toString()) }
 
     // REAL-TIME CIRCULAR COUNTDOWN TIMER CALC ENGINE
     var remainingTimeMs by remember { mutableStateOf(0L) }
@@ -1245,14 +1275,9 @@ fun ClassDetailsScreen(
                                 verticalArrangement = Arrangement.Center
                             ) {
                                 Text(
-                                    text = String.format("%02dh %02dm", hours, minutes),
-                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold, fontSize = 22.sp),
+                                    text = String.format("%02dh %02dm %02ds", hours, minutes, seconds),
+                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold, fontSize = 18.sp),
                                     color = MaterialTheme.colorScheme.onBackground
-                                )
-                                Text(
-                                    text = String.format("%02ds", seconds),
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = HighDensityAlertRed
                                 )
                                 Text(
                                     text = "ticking...",
@@ -1493,11 +1518,22 @@ fun ClassDetailsScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("-10 Mins Warning Alert", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
-                                Text("Urgent beep pulses for 30 seconds.", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                                Text("Urgent beep pulses for specific duration.", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
                             }
                             Switch(
                                 checked = c10Enabled,
                                 onCheckedChange = { c10Enabled = it }
+                            )
+                        }
+
+                        if (c10Enabled) {
+                            OutlinedTextField(
+                                value = customDurInput,
+                                onValueChange = { customDurInput = it.take(4) },
+                                label = { Text("Duration of Huge Beep Sound (seconds)") },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
@@ -1541,7 +1577,8 @@ fun ClassDetailsScreen(
                                 recurSunday = suRecur,
                                 alertSound = chosenSound,
                                 custom20MinEnabled = c20Enabled,
-                                custom10MinEnabled = c10Enabled
+                                custom10MinEnabled = c10Enabled,
+                                customSoundDuration = customDurInput.toIntOrNull() ?: 30
                             )
                             viewModel.updateSchedule(updatedClass)
                             Toast.makeText(context, "Class schedules updated successfully!", Toast.LENGTH_SHORT).show()
@@ -1628,15 +1665,15 @@ fun DayDot(label: String, active: Boolean) {
 fun RecurToggleBtn(label: String, checked: Boolean, onToggle: (Boolean) -> Unit) {
     Box(
         modifier = Modifier
-            .size(34.dp)
+            .size(38.dp)
             .clip(CircleShape)
             .background(
-                if (checked) MaterialTheme.colorScheme.primary else Color.Transparent
+                if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
             )
             .border(
                 BorderStroke(
-                    width = 1.dp,
-                    color = if (checked) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = 0.5f)
+                    width = if (checked) 0.dp else 1.dp,
+                    color = if (checked) Color.Transparent else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                 ),
                 shape = CircleShape
             )
@@ -1646,11 +1683,77 @@ fun RecurToggleBtn(label: String, checked: Boolean, onToggle: (Boolean) -> Unit)
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.sp
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 13.sp
             ),
-            color = if (checked) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+            color = if (checked) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
         )
+    }
+}
+
+@Composable
+fun CountdownTimerRing(schedule: ClassSchedule) {
+    var timeRemainingMs by remember { mutableLongStateOf(0L) }
+
+    LaunchedEffect(schedule) {
+        while(true) {
+            val nextMs = calculateNextOccurrenceMs(schedule.startHour, schedule.startMinute, schedule)
+            val diff = nextMs - System.currentTimeMillis()
+            timeRemainingMs = if (diff > 0) diff else 0L
+            delay(1000L)
+        }
+    }
+
+    val hours = (timeRemainingMs / (1000 * 60 * 60))
+    val mins = (timeRemainingMs / (1000 * 60)) % 60
+    val secs = (timeRemainingMs / 1000) % 60
+
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "TIME TO CLASS START TIME",
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.size(200.dp)
+        ) {
+            val primaryColor = MaterialTheme.colorScheme.primary
+            val surfaceColor = MaterialTheme.colorScheme.surfaceVariant
+            val totalDayMs = 24L * 60 * 60 * 1000
+            val progress = (timeRemainingMs.toFloat() / totalDayMs.toFloat()).coerceIn(0f, 1f)
+
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawCircle(
+                    color = surfaceColor,
+                    style = Stroke(width = 12.dp.toPx())
+                )
+                drawArc(
+                    color = primaryColor,
+                    startAngle = -90f,
+                    sweepAngle = 360f * progress,
+                    useCenter = false,
+                    style = Stroke(width = 12.dp.toPx(), cap = StrokeCap.Round)
+                )
+            }
+            
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = String.format("%02dh %02dm %02ds", hours, mins, secs),
+                    style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "ticking...",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray
+                )
+            }
+        }
     }
 }
 

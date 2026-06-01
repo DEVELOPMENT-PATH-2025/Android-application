@@ -29,8 +29,17 @@ class SnoozeReceiver : BroadcastReceiver() {
         try {
             val stopIntent = Intent(context, AlertService::class.java)
             context.stopService(stopIntent)
+            
+            // Also explicitly cancel the notification
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+            notificationManager.cancel(4004) // NOTIFICATION_ID from AlertService
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping AlertService: ${e.message}")
+        }
+
+        if (snoozeMinutes <= 0) {
+            Toast.makeText(context, "Alarm dismissed", Toast.LENGTH_SHORT).show()
+            return
         }
 
         // 2. Schedule next Alarm in snoozeMinutes
@@ -59,11 +68,10 @@ class SnoozeReceiver : BroadcastReceiver() {
         val pendingIntent = PendingIntent.getBroadcast(context, requestCode, alarmIntent, flags)
 
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTimeMs, pendingIntent)
-            } else {
-                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTimeMs, pendingIntent)
-            }
+            val showIntent = Intent(context, com.example.MainActivity::class.java)
+            val showPendingIntent = PendingIntent.getActivity(context, requestCode, showIntent, flags)
+            val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerTimeMs, showPendingIntent)
+            alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
             Toast.makeText(context, "Snoozed '$className' for $snoozeMinutes minutes", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             alarmManager.set(AlarmManager.RTC_WAKEUP, triggerTimeMs, pendingIntent)

@@ -18,11 +18,12 @@ data class ClassSchedule(
     val recurSaturday: Boolean = false,
     val recurSunday: Boolean = false,
     val isEnabled: Boolean = true,
-    // Preferred alert sound: Default Deep Pulse, Beryl Radar Pulse, Chime Echo, Digital Warning Buzz
+    // Preferred alert sound: Default Deep Pulse, Beryl Radar Pulse, Chime Echo, Digital Warning Buzz, Huge Beep
     val alertSound: String = "Default Deep Pulse",
     // Custom settings
     val custom20MinEnabled: Boolean = true,
-    val custom10MinEnabled: Boolean = true
+    val custom10MinEnabled: Boolean = true,
+    val customSoundDuration: Int = 30
 ) {
     fun hasRecurrence(): Boolean {
         return recurMonday || recurTuesday || recurWednesday || recurThursday || 

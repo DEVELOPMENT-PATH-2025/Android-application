@@ -56,8 +56,8 @@ object SchedulerHelper {
             }
 
             if (schedule.custom10MinEnabled) {
-                // Schedule 10 mins prior: alarmType=1, duration=30s
-                scheduleAlarmAtOffset(context, alarmManager, schedule, day, 10, 30, 1)
+                // Schedule 10 mins prior: alarmType=1, duration from schedule
+                scheduleAlarmAtOffset(context, alarmManager, schedule, day, 10, schedule.customSoundDuration, 1)
             }
         }
     }
@@ -93,19 +93,11 @@ object SchedulerHelper {
         val pendingIntent = PendingIntent.getBroadcast(context, requestCode, intent, flags)
 
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    triggerTimeMs,
-                    pendingIntent
-                )
-            } else {
-                alarmManager.setExact(
-                    AlarmManager.RTC_WAKEUP,
-                    triggerTimeMs,
-                    pendingIntent
-                )
-            }
+            val showIntent = Intent(context, com.example.MainActivity::class.java)
+            val showPendingIntent = PendingIntent.getActivity(context, requestCode, showIntent, flags)
+            val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerTimeMs, showPendingIntent)
+            alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
+            
             Log.d(TAG, "Scheduled class alert: ID $requestCode, ${schedule.className} in -$minutesBefore mins at ${java.util.Date(triggerTimeMs)}")
         } catch (e: SecurityException) {
             // Fallback for strict OS constraints
