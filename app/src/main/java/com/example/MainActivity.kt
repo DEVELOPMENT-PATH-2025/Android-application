@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.app.TimePickerDialog
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -863,19 +864,19 @@ fun MainScreen(viewModel: ClassScheduleViewModel) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .wrapContentHeight()
-                    .padding(8.dp),
+                    .fillMaxHeight(0.85f)
+                    .padding(horizontal = 16.dp, vertical = 24.dp)
+                    .navigationBarsPadding()
+                    .imePadding(),
                 shape = RoundedCornerShape(28.dp),
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 6.dp
             ) {
                 Column(
                     modifier = Modifier
-                        .padding(20.dp)
-                        .verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .fillMaxSize()
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
                         text = "Schedule Class Session",
@@ -883,203 +884,179 @@ fun MainScreen(viewModel: ClassScheduleViewModel) {
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
                             color = MaterialTheme.colorScheme.primary
-                        )
-                    )
-
-                    OutlinedTextField(
-                        value = classNameInput,
-                        onValueChange = { classNameInput = it },
-                        label = { Text("Class Name (e.g. Advanced Algorithms)") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().testTag("input_class_name")
-                    )
-
-                    OutlinedTextField(
-                        value = classNumberInput,
-                        onValueChange = { classNumberInput = it },
-                        label = { Text("Class Number/Room (e.g. CS-402, Room 305B)") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().testTag("input_class_number")
-                    )
-
-                    // CUSTOM TIME SELECTOR CHIPS & DIAL
-                    Text(
-                        text = "Time Setup (Hour & Minute)",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.primary
+                        ),
+                        modifier = Modifier.padding(top = 8.dp, bottom = 12.dp)
                     )
 
                     Column(
                         modifier = Modifier
+                            .weight(1f)
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .padding(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                            .verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // Hour setup
-                        Row(
+                        OutlinedTextField(
+                            value = classNameInput,
+                            onValueChange = { classNameInput = it },
+                            label = { Text("Class Name (e.g. Advanced Algorithms)") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth().testTag("input_class_name")
+                        )
+
+                        OutlinedTextField(
+                            value = classNumberInput,
+                            onValueChange = { classNumberInput = it },
+                            label = { Text("Class Number/Room (e.g. CS-402, Room 305B)") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth().testTag("input_class_number")
+                        )
+
+                        // CUSTOM TIME SELECTOR CHIPS & DIAL
+                        Text(
+                            text = "Time Setup (Hour & Minute)",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            color = MaterialTheme.colorScheme.primary
+                        )
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = String.format("Hour: %02d (%s)", 
+                                text = String.format("%02d:%02d %s", 
                                     if (startHourInput == 0 || startHourInput == 12) 12 else startHourInput % 12,
+                                    startMinuteInput,
                                     if (startHourInput >= 12) "PM" else "AM"
                                 ),
-                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
+                                style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            Button(
+                                onClick = {
+                                    TimePickerDialog(
+                                        context,
+                                        { _, hourOfDay, minute ->
+                                            startHourInput = hourOfDay
+                                            startMinuteInput = minute
+                                        },
+                                        startHourInput,
+                                        startMinuteInput,
+                                        false
+                                    ).show()
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                shape = RoundedCornerShape(12.dp)
                             ) {
-                                FilledIconButton(
-                                    onClick = { if (startHourInput > 0) startHourInput-- else startHourInput = 23 },
-                                    modifier = Modifier.size(32.dp),
-                                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary)
-                                ) {
-                                    Icon(Icons.Default.Remove, "Decrement Hour", modifier = Modifier.size(14.dp))
-                                }
-                                FilledIconButton(
-                                    onClick = { if (startHourInput < 23) startHourInput++ else startHourInput = 0 },
-                                    modifier = Modifier.size(32.dp),
-                                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary)
-                                ) {
-                                    Icon(Icons.Default.Add, "Increment Hour", modifier = Modifier.size(14.dp))
-                                }
+                                Icon(Icons.Default.Schedule, contentDescription = "Time")
+                                Spacer(Modifier.width(8.dp))
+                                Text("Set Time")
                             }
                         }
 
-                        // Minute setup
+                        // WEEKDAY RECURRENCE SELECTOR
+                        Text(
+                            text = "Recurrence Days",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            RecurToggleBtn(label = "M", checked = mondayRecur, onToggle = { mondayRecur = it })
+                            RecurToggleBtn(label = "T", checked = tuesdayRecur, onToggle = { tuesdayRecur = it })
+                            RecurToggleBtn(label = "W", checked = wednesdayRecur, onToggle = { wednesdayRecur = it })
+                            RecurToggleBtn(label = "T", checked = thursdayRecur, onToggle = { thursdayRecur = it })
+                            RecurToggleBtn(label = "F", checked = fridayRecur, onToggle = { fridayRecur = it })
+                            RecurToggleBtn(label = "S", checked = saturdayRecur, onToggle = { saturdayRecur = it })
+                            RecurToggleBtn(label = "S", checked = sundayRecur, onToggle = { sundayRecur = it })
+                        }
+
+                        // NEW DETAILED PREFERENCE CONFIGURATORS
+                        Text(
+                            text = "Alert Preferences",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+
+                        var dropdownExpanded by remember { mutableStateOf(false) }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(
-                                text = String.format("Minute: %02d", startMinuteInput),
-                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
-                            )
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                FilledIconButton(
-                                    onClick = { if (startMinuteInput > 0) startMinuteInput-- else startMinuteInput = 59 },
-                                    modifier = Modifier.size(32.dp),
-                                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary)
-                                ) {
-                                    Icon(Icons.Default.Remove, "Decrement Minute", modifier = Modifier.size(14.dp))
-                                }
-                                FilledIconButton(
-                                    onClick = { if (startMinuteInput < 59) startMinuteInput++ else startMinuteInput = 0 },
-                                    modifier = Modifier.size(32.dp),
-                                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary)
-                                ) {
-                                    Icon(Icons.Default.Add, "Increment Minute", modifier = Modifier.size(14.dp))
-                                }
-                            }
-                        }
-                    }
-
-                    // WEEKDAY RECURRENCE SELECTOR
-                    Text(
-                        text = "Recurrence Days",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        RecurToggleBtn(label = "M", checked = mondayRecur, onToggle = { mondayRecur = it })
-                        RecurToggleBtn(label = "T", checked = tuesdayRecur, onToggle = { tuesdayRecur = it })
-                        RecurToggleBtn(label = "W", checked = wednesdayRecur, onToggle = { wednesdayRecur = it })
-                        RecurToggleBtn(label = "T", checked = thursdayRecur, onToggle = { thursdayRecur = it })
-                        RecurToggleBtn(label = "F", checked = fridayRecur, onToggle = { fridayRecur = it })
-                        RecurToggleBtn(label = "S", checked = saturdayRecur, onToggle = { saturdayRecur = it })
-                        RecurToggleBtn(label = "S", checked = sundayRecur, onToggle = { sundayRecur = it })
-                    }
-
-                    // NEW DETAILED PREFERENCE CONFIGURATORS
-                    Text(
-                        text = "Alert Preferences",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    var dropdownExpanded by remember { mutableStateOf(false) }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Sound Group:", style = MaterialTheme.typography.bodySmall)
-                        Box {
-                            Text(
-                                text = alertSoundInput,
-                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier
-                                    .clickable { dropdownExpanded = true }
-                                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                            DropdownMenu(expanded = dropdownExpanded, onDismissRequest = { dropdownExpanded = false }) {
-                                soundOptions.forEach { soundName ->
-                                    DropdownMenuItem(
-                                        text = { Text(soundName) },
-                                        onClick = {
-                                            alertSoundInput = soundName
-                                            dropdownExpanded = false
-                                        }
-                                    )
+                            Text("Sound Group:", style = MaterialTheme.typography.bodySmall)
+                            Box {
+                                Text(
+                                    text = alertSoundInput,
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .clickable { dropdownExpanded = true }
+                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                                DropdownMenu(expanded = dropdownExpanded, onDismissRequest = { dropdownExpanded = false }) {
+                                    soundOptions.forEach { soundName ->
+                                        DropdownMenuItem(
+                                            text = { Text(soundName) },
+                                            onClick = {
+                                                alertSoundInput = soundName
+                                                dropdownExpanded = false
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Include -20 Min Pre-Alert (15s Deep Sound)", style = MaterialTheme.typography.bodySmall)
+                            Checkbox(
+                                checked = c20MinInput,
+                                onCheckedChange = { c20MinInput = it }
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Include -10 Min Urgent Alert (Configurable duration)", style = MaterialTheme.typography.bodySmall)
+                            Checkbox(
+                                checked = c10MinInput,
+                                onCheckedChange = { c10MinInput = it }
+                            )
+                        }
+
+                        if (c10MinInput) {
+                            OutlinedTextField(
+                                value = customDurInputCreation,
+                                onValueChange = { customDurInputCreation = it.take(4) },
+                                label = { Text("Duration of Huge Beep Sound (seconds)") },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Include -20 Min Pre-Alert (15s Deep Sound)", style = MaterialTheme.typography.bodySmall)
-                        Checkbox(
-                            checked = c20MinInput,
-                            onCheckedChange = { c20MinInput = it }
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Include -10 Min Urgent Alert (Configurable duration)", style = MaterialTheme.typography.bodySmall)
-                        Checkbox(
-                            checked = c10MinInput,
-                            onCheckedChange = { c10MinInput = it }
-                        )
-                    }
-
-                    if (c10MinInput) {
-                        OutlinedTextField(
-                            value = customDurInputCreation,
-                            onValueChange = { customDurInputCreation = it.take(4) },
-                            label = { Text("Duration of Huge Beep Sound (seconds)") },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1223,13 +1200,18 @@ fun ClassDetailsScreen(
             )
         }
     ) { paddingValues ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
             // DYNAMIC CIRCULAR COUNTDOWN TIMER DISPLAY (HIGH DENSITY RADIAL DESIGN)
             item {
                 Card(
@@ -1338,54 +1320,38 @@ fun ClassDetailsScreen(
                         Text("Clock Time Configuration", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
                         
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                            horizontalArrangement = Arrangement.Center
                         ) {
-                            Text(
-                                text = String.format("Hour: %02d (%s)", 
-                                    if (editedHour == 0 || editedHour == 12) 12 else editedHour % 12,
-                                    if (editedHour >= 12) "PM" else "AM"
-                                ),
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
-                            )
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                FilledIconButton(
-                                    onClick = { if (editedHour > 0) editedHour-- else editedHour = 23 },
-                                    modifier = Modifier.size(36.dp)
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text(
+                                    text = String.format("%02d:%02d %s", 
+                                        if (editedHour == 0 || editedHour == 12) 12 else editedHour % 12,
+                                        editedMinute,
+                                        if (editedHour >= 12) "PM" else "AM"
+                                    ),
+                                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Button(
+                                    onClick = {
+                                        TimePickerDialog(
+                                            context,
+                                            { _, hourOfDay, minute ->
+                                                editedHour = hourOfDay
+                                                editedMinute = minute
+                                            },
+                                            editedHour,
+                                            editedMinute,
+                                            false
+                                        ).show()
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                    shape = RoundedCornerShape(12.dp)
                                 ) {
-                                    Icon(Icons.Default.Remove, "Dec Hr")
-                                }
-                                FilledIconButton(
-                                    onClick = { if (editedHour < 23) editedHour++ else editedHour = 0 },
-                                    modifier = Modifier.size(36.dp)
-                                ) {
-                                    Icon(Icons.Default.Add, "Inc Hr")
-                                }
-                            }
-                        }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = String.format("Minute: %02d", editedMinute),
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
-                            )
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                FilledIconButton(
-                                    onClick = { if (editedMinute > 0) editedMinute-- else editedMinute = 59 },
-                                    modifier = Modifier.size(36.dp)
-                                ) {
-                                    Icon(Icons.Default.Remove, "Dec Min")
-                                }
-                                FilledIconButton(
-                                    onClick = { if (editedMinute < 59) editedMinute++ else editedMinute = 0 },
-                                    modifier = Modifier.size(36.dp)
-                                ) {
-                                    Icon(Icons.Default.Add, "Inc Min")
+                                    Icon(Icons.Default.Schedule, contentDescription = "Edit Time")
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Change Time")
                                 }
                             }
                         }
@@ -1540,56 +1506,55 @@ fun ClassDetailsScreen(
                 }
             }
 
-            // SAVE UPDATE & CANCEL CTA FOOTER
-            item {
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 32.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = onBack,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Discard")
-                    }
+            }
 
-                    Button(
-                        onClick = {
-                            if (editedName.isBlank()) {
-                                Toast.makeText(context, "Class name cannot be empty", Toast.LENGTH_SHORT).show()
-                                return@Button
-                            }
-                            val updatedClass = schedule.copy(
-                                className = editedName,
-                                classNumber = editedNumber.ifBlank { "N/A" },
-                                startHour = editedHour,
-                                startMinute = editedMinute,
-                                recurMonday = mRecur,
-                                recurTuesday = tRecur,
-                                recurWednesday = wRecur,
-                                recurThursday = thRecur,
-                                recurFriday = fRecur,
-                                recurSaturday = sRecur,
-                                recurSunday = suRecur,
-                                alertSound = chosenSound,
-                                custom20MinEnabled = c20Enabled,
-                                custom10MinEnabled = c10Enabled,
-                                customSoundDuration = customDurInput.toIntOrNull() ?: 30
-                            )
-                            viewModel.updateSchedule(updatedClass)
-                            Toast.makeText(context, "Class schedules updated successfully!", Toast.LENGTH_SHORT).show()
-                            onBack()
-                        },
-                        modifier = Modifier.weight(1f).testTag("save_details_btn"),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Save Changes")
-                    }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .navigationBarsPadding(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onBack,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Discard")
+                }
+
+                Button(
+                    onClick = {
+                        if (editedName.isBlank()) {
+                            Toast.makeText(context, "Class name cannot be empty", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        val updatedClass = schedule.copy(
+                            className = editedName,
+                            classNumber = editedNumber.ifBlank { "N/A" },
+                            startHour = editedHour,
+                            startMinute = editedMinute,
+                            recurMonday = mRecur,
+                            recurTuesday = tRecur,
+                            recurWednesday = wRecur,
+                            recurThursday = thRecur,
+                            recurFriday = fRecur,
+                            recurSaturday = sRecur,
+                            recurSunday = suRecur,
+                            alertSound = chosenSound,
+                            custom20MinEnabled = c20Enabled,
+                            custom10MinEnabled = c10Enabled,
+                            customSoundDuration = customDurInput.toIntOrNull() ?: 30
+                        )
+                        viewModel.updateSchedule(updatedClass)
+                        Toast.makeText(context, "Class schedules updated successfully!", Toast.LENGTH_SHORT).show()
+                        onBack()
+                    },
+                    modifier = Modifier.weight(1f).testTag("save_details_btn"),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Save Changes")
                 }
             }
         }
